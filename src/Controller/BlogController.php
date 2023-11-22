@@ -30,6 +30,7 @@ class BlogController extends AbstractController
         exit;
     } 
 
+
     //_________________________________CREAR NUEVO POST_______________________________________//
     #[Route('/blog/new', name: 'new_post')]
     public function newPost(ManagerRegistry $doctrine, Request $request, SluggerInterface $slugger): Response
@@ -44,6 +45,31 @@ class BlogController extends AbstractController
             $post = $form->getData();   
             $post->setSlug($slugger->slug($post->getTitle())); //TOMA LA VARIABLE TITTLE DEL FORM Y PONE "SLUG" CON ESTE VALOR.
             $post->setUser($this->getUser());              //LO MISMO CON LA VARIABLE USER Y POSTUSER
+            $file = $form->get('Image')->getData();
+            //PARTE DE LA SUBIDA DE LA IMAGEN___________________________________________
+                if ($file) {
+                    $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                    // this is needed to safely include the file name as part of the URL
+                    $safeFilename = $slugger->slug($originalFilename);
+                    $newFilename = $safeFilename.'-'.uniqid().'.'.$file->guessExtension();
+            
+                    // Move the file to the directory where images are stored
+                    try {
+            
+                        $file->move(
+                            $this->getParameter('images_directory'), $newFilename
+                        );
+                        $filesystem = new Filesystem();
+                        $filesystem->copy(
+                            $this->getParameter('images_directory') . '/'. $newFilename, 
+                            $this->getParameter('portfolio_directory') . '/'.  $newFilename, true);
+            
+                    } catch (FileException $e) {
+                        // ... handle exception if something happens during file upload
+                    }
+                    $post->setImage($newFilename);
+                }
+                //_____________________________________________
             $post->setNumLikes(0);
             $post->setNumComments(0);
             $post->setNumViews(0);
@@ -59,6 +85,9 @@ class BlogController extends AbstractController
             'form' => $form->createView()    
         ));
     }
+
+
+
 
 
 //_________________________________MOSTRAR UN SOLO BLOG_______________________________________//
@@ -82,15 +111,29 @@ public function post(ManagerRegistry $doctrine, $Slug): Response
     {
         $repository = $doctrine->getRepository(Post::class);
         $posts = $repository->findAll();
-        
+        $recents = $repository->findRecents();
         return $this->render('blog/blog.html.twig', [
             'posts' => $posts,
+            'recents' => $recents,
         ]);
     }
 
 
+    //_________________________________PONER LIKE A UN POST_______________________________________/
 
 
+    #[Route("/blog/{slug}/like", name: 'post_like')]
+    public function like(ManagerRegistry $doctrine, $Slug): Response
+    {
+        $repository = $doctrine->getRepository(Post::class);
+        $post = $repository->findOneBy(["Slug" => $Slug]);
+        $post->addLike();
+        $entityManager = $doctrine->getManager();    
+        $entityManager->persist($post); //PERSISTE
+        $entityManager->flush();        //Y GUARDA TODO
+        return $this->redirectToRoute('single_post', ['Slug'=>$Slug]);
+
+    }
 
 
 

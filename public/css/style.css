@@ -111,6 +111,10 @@ footer{
 .home-page{
 	padding-top: 20px;
 	padding-bottom: 30px;
+	/*position:fixed;
+	bottom:0px;
+	left: 0px;
+	width:100%;*/
 }
 
 @media(min-width: 768px){
@@ -1206,6 +1210,13 @@ img{
 }
 #contact .ending p{
 	margin-top: 20px;
+	margin-bottom: 20px;
+}
+
+#TituloRecent{
+	color:rgba(0,0,0,0.6);
+	font-size: 16px;
+	text-align: left;
 	margin-bottom: 20px;
 }
 /*-- End of Contact Page Stylesheet --*/
